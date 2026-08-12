@@ -1,5 +1,9 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 def main():
-    print("Hello from langgrah-course!")
+    print("Hello Reflexion Agent")
 
 
 if __name__ == "__main__":
