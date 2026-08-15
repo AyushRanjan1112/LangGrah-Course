@@ -1,25 +1,22 @@
 import datetime
 
-
 from dotenv import load_dotenv
 
 load_dotenv()
 
+from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers.openai_tools import (
     JsonOutputToolsParser,
     PydanticToolsParser,
 )
-from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_ollama import ChatOllama
 
 from schemas import AnswerQuestion, ReviseAnswer
 
-llm = ChatOllama(model="qwen3:1.7b")
+llm = ChatOllama(model="gpt-oss:20b-cloud")
 parser = JsonOutputToolsParser(return_id=True)
 parser_pydantic = PydanticToolsParser(tools=[AnswerQuestion])
-
-
 
 actor_prompt_template = ChatPromptTemplate.from_messages(
     [
@@ -40,12 +37,13 @@ Current time: {time}
 )
 
 
+first_responder_prompt_template = actor_prompt_template.partial(
+    first_instruction="Provide a detailed ~250 word answer."
+)
 
-
-first_responder_prompt_template = actor_prompt_template.partial(first_instruction="Provide a detailed ~250 word answer.") 
-
-
-first_responder = first_responder_prompt_template | llm.bind_tools(tools=[AnswerQuestion], tool_choice="AnswerQuestion") 
+first_responder = first_responder_prompt_template | llm.bind_tools(
+    tools=[AnswerQuestion], tool_choice="AnswerQuestion"
+)
 
 revise_instructions = """Revise your previous answer using the new information.
     - You should use the previous critique to add important information to your answer.
@@ -62,9 +60,14 @@ revisor = actor_prompt_template.partial(
 
 
 if __name__ == "__main__":
-    human_message = HumanMessage(content="Write about AI-Powered SOC / autonomous soc problem domain,"" list startups that do that and raised capital,")
+    human_message = HumanMessage(
+        content="Write about AI-Powered SOC / autonomous soc  problem domain,"
+        " list startups that do that and raised capital."
+    )
     chain = (
-        first_responder_prompt_template | llm.bind_tools(tools=[AnswerQuestion], tool_choice="AnswerQuestion") | parser_pydantic
+        first_responder_prompt_template
+        | llm.bind_tools(tools=[AnswerQuestion], tool_choice="AnswerQuestion")
+        | parser_pydantic
     )
 
     res = chain.invoke(input={"messages": [human_message]})
